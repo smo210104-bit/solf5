@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Кто хочет стать отличником? - Сольфеджио</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #090a16;
+            --accent-gold: #eab308;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --blue-dark: #0f172a;
+            --blue-light: #1e3a8a;
+        }
+
+        body { 
+            font-family: 'Montserrat', sans-serif; 
+            background-color: #000;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100dvh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none; /* Prevent scroll/bounce on mobile */
+        }
+        
+        .reels-container {
+            width: 100%;
+            height: 100dvh;
+            max-width: 450px;
+            background: radial-gradient(circle at top, #111827 0%, var(--bg-main) 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            overflow: hidden;
+        }
+        
+        .question-box { 
+            background: linear-gradient(180deg, var(--blue-light) 0%, var(--blue-dark) 100%); 
+            border: 2px solid var(--accent-gold); 
+            box-shadow: 0 4px 20px rgba(234, 179, 8, 0.25); 
+            border-radius: 16px;
+        }
+        
+        .answer-box { 
+            background: linear-gradient(180deg, var(--blue-light) 0%, var(--blue-dark) 100%); 
+            border: 2px solid #3b82f6; 
+            border-radius: 30px;
+            transition: all 0.2s ease; 
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .answer-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.1);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .answer-box:active::before { opacity: 1; }
+        .answer-box.selected { 
+            background: linear-gradient(180deg, #ca8a04 0%, #a16207 100%); 
+            border-color: #fef08a; 
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); 
+        }
+        .answer-box.correct { 
+            background: linear-gradient(180deg, #16a34a 0%, #15803d 100%); 
+            border-color: var(--accent-green); 
+            animation: pulse-green 1s infinite; 
+        }
+        .answer-box.wrong { 
+            background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%); 
+            border-color: var(--accent-red); 
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); 
+        }
+        
+        .lifeline { 
+            transition: all 0.2s; 
+            background: linear-gradient(180deg, #1e40af 0%, #172554 100%);
+        }
+        .lifeline:active:not(.used) { transform: scale(0.9); }
+        .lifeline.used { opacity: 0.3; filter: grayscale(100%); pointer-events: none; }
+        
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        .modal-overlay { background: rgba(9, 10, 22, 0.95); backdrop-filter: blur(10px); }
+        
+        .bar-chart-col { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; width: 20%; }
+        .bar-fill { width: 100%; background: linear-gradient(0deg, #1d4ed8 0%, #3b82f6 100%); transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 4px 4px 0 0; box-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        
+        .timer-circle {
+            width: 120px; height: 120px; border-radius: 50%; border: 6px solid var(--accent-gold);
+            display: flex; align-items: center; justify-content: center; font-size: 3.5rem;
+            font-weight: 900; color: var(--accent-gold); 
+            text-shadow: 0 0 15px rgba(234, 179, 8, 0.8); 
+            box-shadow: 0 0 25px rgba(234, 179, 8, 0.3), inset 0 0 15px rgba(234, 179, 8, 0.2);
+            animation: pulse-timer 1s infinite;
+        }
+        @keyframes pulse-timer { 50% { transform: scale(1.05); } }
+    </style>
+</head>
+<body>
+
+<div class="reels-container">
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center modal-overlay p-6 text-center">
+        <div class="w-24 h-24 mb-6 rounded-full bg-blue-900 border-4 border-yellow-500 flex items-center justify-center shadow-[0_0_30px_rgba(234,179,8,0.6)]">
+            <span class="text-5xl">🎵</span>
+        </div>
+        <h1 class="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-300 to-yellow-600 mb-4 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)] uppercase tracking-tight leading-tight">Кто хочет стать<br>отличником?</h1>
+        <p class="text-lg mb-10 text-blue-200 font-semibold tracking-wide">Итоговый тест по сольфеджио</p>
+        <button onclick="startGame()" class="w-full max-w-[280px] py-4 bg-gradient-to-r from-blue-700 to-blue-900 border-2 border-yellow-500 rounded-full text-2xl font-black hover:shadow-[0_0_25px_rgba(234,179,8,0.8)] active:scale-95 transition-all uppercase tracking-wider text-white">Играть</button>
+    </div>
+
+    <!-- Main Game UI -->
+    <div class="flex-1 flex flex-col z-10 w-full h-full p-4 justify-between">
+        
+        <!-- Top Section: Score & Level -->
+        <div class="w-full flex flex-col space-y-3 pt-2">
+            <div class="flex justify-between items-end px-2">
+                <div>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-0.5">Текущий выигрыш</p>
+                    <div class="text-2xl font-black text-yellow-500 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)] leading-none" id="current-score">0</div>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-0.5">Вопрос</p>
+                    <div class="text-lg font-bold text-white leading-none" id="level-indicator">1 / 15</div>
+                </div>
+            </div>
+            
+            <!-- Lifelines -->
+            <div class="flex justify-between items-center w-full bg-blue-950/40 p-2.5 rounded-[2rem] border border-blue-900/50">
+                <button id="life-50" class="lifeline w-14 h-12 border-2 border-yellow-500 rounded-[1.5rem] flex items-center justify-center text-sm font-black shadow-[0_0_15px_rgba(234,179,8,0.3)] text-yellow-400 tracking-tighter" onclick="use5050()">50:50</button>
+                <button id="life-aud" class="lifeline w-14 h-12 border-2 border-yellow-500 rounded-[1.5rem] flex items-center justify-center text-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]" onclick="useAudience()">👥</button>
+                <button id="life-team" class="lifeline w-14 h-12 border-2 border-yellow-500 rounded-[1.5rem] flex items-center justify-center text-xl shadow-[0_0_15px_rgba(234,179,8,0.3)]" onclick="useTeamCouncil()">⏱️</button>
+            </div>
+        </div>
+
+        <!-- Middle Section: Question -->
+        <div class="w-full flex-1 flex items-center justify-center my-3">
+            <div class="question-box w-full max-h-[220px] flex items-center justify-center p-5 relative overflow-y-auto">
+                <h2 id="question-text" class="text-[1.15rem] sm:text-xl font-bold text-white text-center drop-shadow-md leading-snug">
+                    <!-- Question injected here -->
+                </h2>
+            </div>
+        </div>
+
+        <!-- Bottom Section: Answers -->
+        <div class="w-full flex flex-col gap-2.5 pb-2" id="answers-container">
+            <!-- JS generates answers here -->
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Audience Modal -->
+    <div id="modal-audience" class="absolute inset-0 z-40 hidden flex items-center justify-center modal-overlay p-4">
+        <div class="bg-gradient-to-b from-blue-900 to-[#090a16] border-2 border-yellow-500 rounded-[2rem] p-6 w-full max-w-[320px] shadow-[0_0_40px_rgba(37,99,235,0.4)] flex flex-col items-center">
+            <h3 class="text-xl font-black text-center text-yellow-400 mb-6 uppercase tracking-wider">Голосование зала</h3>
+            <div class="flex justify-between items-end h-40 w-full border-b-2 border-blue-800 pb-2 px-1" id="chart-bars">
+                <div class="bar-chart-col"><div id="bar-0" class="bar-fill h-0"></div><span class="mt-2 text-base font-bold">A</span><span class="text-[10px] text-gray-400 font-semibold" id="pct-0">0%</span></div>
+                <div class="bar-chart-col"><div id="bar-1" class="bar-fill h-0"></div><span class="mt-2 text-base font-bold">B</span><span class="text-[10px] text-gray-400 font-semibold" id="pct-1">0%</span></div>
+                <div class="bar-chart-col"><div id="bar-2" class="bar-fill h-0"></div><span class="mt-2 text-base font-bold">C</span><span class="text-[10px] text-gray-400 font-semibold" id="pct-2">0%</span></div>
+                <div class="bar-chart-col"><div id="bar-3" class="bar-fill h-0"></div><span class="mt-2 text-base font-bold">D</span><span class="text-[10px] text-gray-400 font-semibold" id="pct-3">0%</span></div>
+            </div>
+            <button onclick="closeModal('modal-audience')" class="mt-8 w-full py-3 bg-blue-600 active:bg-blue-700 rounded-full text-white text-base font-bold shadow-[0_0_15px_rgba(37,99,235,0.5)]">Скрыть</button>
+        </div>
+    </div>
+
+    <!-- Team Timer Modal -->
+    <div id="modal-team" class="absolute inset-0 z-40 hidden flex items-center justify-center modal-overlay p-4">
+        <div class="bg-gradient-to-b from-blue-900 to-[#090a16] border-2 border-yellow-500 rounded-[2rem] p-8 flex flex-col items-center shadow-[0_0_40px_rgba(234,179,8,0.3)] w-full max-w-[320px]">
+            <h3 class="text-xl font-black text-yellow-400 mb-6 uppercase tracking-widest text-center">Совет класса</h3>
+            <div class="timer-circle" id="timer-display">30</div>
+            <p class="mt-6 text-sm text-blue-200 font-medium text-center">Обсудите правильный ответ!</p>
+            <button onclick="stopTimer()" class="mt-8 w-full py-3 bg-red-700 active:bg-red-800 rounded-full text-white text-base font-bold shadow-[0_0_20px_rgba(220,38,38,0.5)]">Завершить досрочно</button>
+        </div>
+    </div>
+
+    <!-- Game Over / Win Modal -->
+    <div id="modal-result" class="absolute inset-0 z-50 hidden flex items-center justify-center modal-overlay p-4">
+        <div class="bg-gradient-to-b from-blue-950 to-[#090a16] border-4 border-yellow-500 rounded-[2rem] p-8 w-full max-w-[340px] text-center shadow-[0_0_60px_rgba(234,179,8,0.5)] relative overflow-hidden">
+            <div class="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-yellow-500 via-transparent to-transparent pointer-events-none"></div>
+            <h2 id="result-title" class="text-3xl font-black text-yellow-400 mb-4 uppercase relative z-10">Финал!</h2>
+            <p class="text-xs text-blue-300 font-bold uppercase tracking-widest mb-1 relative z-10">Итоговый счет:</p>
+            <p id="result-score" class="text-4xl font-black text-green-400 mb-4 drop-shadow-[0_0_15px_rgba(74,222,128,0.8)] relative z-10">0</p>
+            <p id="result-comment" class="text-sm text-white mb-8 font-medium leading-relaxed relative z-10">Хорошая попытка!</p>
+            <button onclick="location.reload()" class="w-full py-4 bg-gradient-to-r from-yellow-400 to-yellow-600 active:scale-95 text-gray-900 rounded-full text-lg font-black shadow-[0_0_20px_rgba(234,179,8,0.6)] relative z-10 uppercase tracking-wide">Играть снова</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Исходные вопросы (первый вариант в массиве options - правильный, логика перемешает их при выводе)
+    const rawQuestionsData = [
+        { q: "Что делает точка, поставленная справа от ноты?", options: ["Увеличивает длительность ровно наполовину", "Увеличивает её в два раза", "Ничего не меняет", "Уменьшает длительность наполовину"] },
+        { q: "На какой ступени лада находится доминанта?", options: ["На V ступени", "На I ступени", "На IV ступени", "На VII ступени"] },
+        { q: "Какие ступени лада являются неустойчивыми?", options: ["II, IV, VI, VII", "I, III, V", "II, III, VI, VII", "I, IV, V"] },
+        { q: "Чему равны четыре шестнадцатые ноты по своей длительности?", options: ["Одной четвертной", "Одной половинной", "Одной восьмой", "Одной целой"] },
+        { q: "Сколько тонов содержит малая терция?", options: ["1,5 тона", "2 тона", "1 тон", "0,5 тона"] },
+        { q: "Из чего состоит мажорное трезвучие (снизу вверх)?", options: ["Большая терция + малая терция", "Малая терция + большая терция", "Две большие терции", "Две малые терции"] },
+        { q: "Что такое синкопа в музыке?", options: ["Перенос музыкального ударения с сильной доли на слабую", "Деление доли на три части", "Удлинение ноты с точкой", "Перенос ударения со слабой доли на сильную"] },
+        { q: "Как образуется триоль?", options: ["Когда основная доля делится на 3 равные части вместо 2", "Аккорд из трех звуков", "Интервал в три тона", "Особый музыкальный размер"] },
+        { q: "В какой интервал обращается квинта?", options: ["В кварту", "В терцию", "В сексту", "В октаву"] },
+        { q: "Как называется первое обращение трезвучия?", options: ["Секстаккорд", "Квартсекстаккорд", "Септаккорд", "Нонаккорд"] },
+        { q: "Какая ступень всегда повышается в гармоническом миноре?", options: ["VII ступень", "VI ступень", "IV ступень", "II ступень"] },
+        { q: "Что такое параллельные тональности?", options: ["Мажор и минор, которые имеют одинаковые ключевые знаки, но разные тоники", "Тональности с одинаковой тоникой, но разными знаками", "Тональности с одинаковым ладом", "Мажор и минор без ключевых знаков"] },
+        { q: "Какие ключевые знаки стоят при ключе в тональностях Ре мажор и си минор?", options: ["Два диеза (фа-диез и до-диез)", "Один диез (фа-диез)", "Два бемоля (си-бемоль и ми-бемоль)", "Три диеза (фа, до, соль)"] },
+        { q: "На какой ступени лада всегда строится доминантовый септаккорд?", options: ["На V ступени", "На I ступени", "На IV ступени", "На VII ступени"] },
+        { q: "Что такое тритон и какие интервалы к нему относятся?", options: ["Интервал 3 тона (увеличенная кварта или уменьшенная квинта)", "Интервал 3 тона (б.3 или ч.4)", "Интервал 3 полутона (м.3)", "Любой аккорд на главных ступенях"] }
+    ];
+
+    const prizes = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
+    
+    let currentLevel = 0;
+    let guaranteedPrize = 0;
+    let isAnswering = false;
+    let currentOptions = []; // Shuffled options for current level
+    
+    let used5050 = false;
+    let usedAudience = false;
+    let usedTeam = false;
+
+    let audioCtx;
+
+    /* STREAMING_CHUNK:Initializing Audio System... */
+    function initAudio() {
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, type, duration, vol = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    const sfx = {
+        select: () => { playTone(400, 'sine', 0.2, 0.2); playTone(500, 'triangle', 0.3, 0.1); },
+        correct: () => { playTone(523.25, 'sine', 0.2); setTimeout(() => playTone(659.25, 'sine', 0.2), 150); setTimeout(() => playTone(783.99, 'sine', 0.5), 300); },
+        wrong: () => { playTone(250, 'sawtooth', 0.4, 0.25); setTimeout(() => playTone(200, 'sawtooth', 0.6, 0.25), 300); },
+        win: () => {
+            const notes = [523.25, 659.25, 783.99, 1046.50, 783.99, 1046.50];
+            notes.forEach((n, i) => setTimeout(() => playTone(n, 'square', 0.4, 0.15), i * 150));
+        },
+        tick: () => playTone(800, 'sine', 0.05, 0.05)
+    };
+
+    function formatMoney(num) { 
+        return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); 
+    }
+
+    function updateTopUI() {
+        if (currentLevel < prizes.length) {
+            document.getElementById('current-score').innerText = formatMoney(currentLevel > 0 ? prizes[currentLevel-1] : 0);
+            document.getElementById('level-indicator').innerText = `${currentLevel + 1} / 15`;
+        }
+    }
+
+    /* STREAMING_CHUNK:Loading the Question... */
+    function loadQuestion() {
+        isAnswering = false;
+        updateTopUI();
+        
+        const qData = rawQuestionsData[currentLevel];
+        document.getElementById('question-text').innerText = qData.q;
+        
+        // Shuffle options and remember the correct one
+        currentOptions = qData.options.map((opt, index) => ({
+            text: opt,
+            isCorrect: index === 0 // 0 is always correct in our raw data
+        }));
+        
+        // Shuffle array
+        currentOptions.sort(() => Math.random() - 0.5);
+
+        const letters = ['A', 'B', 'C', 'D'];
+        const container = document.getElementById('answers-container');
+        container.innerHTML = '';
+
+        currentOptions.forEach((opt, idx) => {
+            const btn = document.createElement('div');
+            btn.className = "answer-box flex items-center px-4 py-3.5 min-h-[64px]";
+            btn.id = `ans-${idx}`;
+            btn.onclick = () => selectAnswer(idx);
+            
+            btn.innerHTML = `
+                <span class="text-yellow-500 font-black text-lg mr-3 w-5 drop-shadow-md shrink-0">${letters[idx]}:</span>
+                <span class="text-white text-[13px] sm:text-sm font-semibold leading-snug flex-1">${opt.text}</span>
+            `;
+            container.appendChild(btn);
+        });
+    }
+
+    /* STREAMING_CHUNK:Handling the Answer Logic... */
+    function selectAnswer(index) {
+        if (isAnswering) return;
+        isAnswering = true;
+        initAudio();
+        
+        const selectedEl = document.getElementById(`ans-${index}`);
+        const isCorrect = currentOptions[index].isCorrect;
+        
+        sfx.select();
+        selectedEl.classList.add('selected');
+
+        setTimeout(() => {
+            selectedEl.classList.remove('selected');
+            
+            if (isCorrect) {
+                sfx.correct();
+                selectedEl.classList.add('correct');
+                
+                // Safe nets
+                if (currentLevel === 4) guaranteedPrize = prizes[4];
+                if (currentLevel === 9) guaranteedPrize = prizes[9];
+
+                setTimeout(() => {
+                    currentLevel++;
+                    if (currentLevel >= prizes.length) {
+                        showResult(true, prizes[prizes.length - 1]);
+                    } else {
+                        loadQuestion();
+                    }
+                }, 2000);
+            } else {
+                sfx.wrong();
+                selectedEl.classList.add('wrong');
+                
+                // Highlight correct answer
+                const correctIdx = currentOptions.findIndex(o => o.isCorrect);
+                if (correctIdx !== -1 && document.getElementById(`ans-${correctIdx}`)) {
+                    document.getElementById(`ans-${correctIdx}`).classList.add('correct');
+                }
+                
+                setTimeout(() => {
+                    showResult(false, guaranteedPrize);
+                }, 2500);
+            }
+        }, 1500);
+    }
+
+    /* STREAMING_CHUNK:Lifelines Implementation... */
+    function use5050() {
+        if (used5050 || isAnswering) return;
+        initAudio();
+        used5050 = true;
+        document.getElementById('life-50').classList.add('used');
+        
+        const correctIdx = currentOptions.findIndex(o => o.isCorrect);
+        let wrongIndices = [0, 1, 2, 3].filter(i => i !== correctIdx);
+        wrongIndices.sort(() => Math.random() - 0.5);
+        
+        document.getElementById(`ans-${wrongIndices[0]}`).style.visibility = 'hidden';
+        document.getElementById(`ans-${wrongIndices[1]}`).style.visibility = 'hidden';
+        sfx.select();
+    }
+
+    function useAudience() {
+        if (usedAudience || isAnswering) return;
+        initAudio();
+        usedAudience = true;
+        document.getElementById('life-aud').classList.add('used');
+        
+        const correctIdx = currentOptions.findIndex(o => o.isCorrect);
+        let p = [0, 0, 0, 0];
+        
+        let remaining = 100;
+        // Higher confidence for earlier questions
+        p[correctIdx] = Math.floor(Math.random() * 25) + (currentLevel < 5 ? 65 : 45); 
+        if (p[correctIdx] > 100) p[correctIdx] = 100;
+        remaining -= p[correctIdx];
+
+        let wrongIndices = [0, 1, 2, 3].filter(i => i !== correctIdx);
+        let activeWrong = [];
+        wrongIndices.forEach(idx => {
+            if(document.getElementById(`ans-${idx}`).style.visibility === 'hidden') {
+                p[idx] = 0;
+            } else {
+                activeWrong.push(idx);
+            }
+        });
+
+        if (activeWrong.length === 1) {
+            p[activeWrong[0]] = remaining;
+        } else if (activeWrong.length > 1) {
+            p[activeWrong[0]] = Math.floor(Math.random() * remaining);
+            p[activeWrong[1]] = remaining - p[activeWrong[0]];
+            if(activeWrong[2] !== undefined) p[activeWrong[2]] = 0; 
+        }
+
+        document.getElementById('modal-audience').classList.remove('hidden');
+        
+        setTimeout(() => {
+            for (let i = 0; i < 4; i++) {
+                document.getElementById(`bar-${i}`).style.height = `${p[i]}%`;
+                document.getElementById(`pct-${i}`).innerText = `${p[i]}%`;
+            }
+            sfx.correct();
+        }, 100);
+    }
+
+    let timerInterval;
+    function useTeamCouncil() {
+        if (usedTeam || isAnswering) return;
+        initAudio();
+        usedTeam = true;
+        document.getElementById('life-team').classList.add('used');
+        document.getElementById('modal-team').classList.remove('hidden');
+        
+        let timeLeft = 30;
+        const timerEl = document.getElementById('timer-display');
+        timerEl.innerText = timeLeft;
+        timerEl.style.color = '#eab308';
+        timerEl.style.borderColor = '#eab308';
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.innerText = timeLeft;
+            sfx.tick();
+            
+            if (timeLeft <= 10) {
+                timerEl.style.color = '#ef4444';
+                timerEl.style.borderColor = '#ef4444';
+            }
+            
+            if (timeLeft <= 0) stopTimer();
+        }, 1000);
+    }
+
+    /* STREAMING_CHUNK:Utility Functions... */
+    function stopTimer() {
+        clearInterval(timerInterval);
+        closeModal('modal-team');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function showResult(win, score) {
+        document.getElementById('modal-result').classList.remove('hidden');
+        document.getElementById('result-score').innerText = formatMoney(score);
+        
+        const titleEl = document.getElementById('result-title');
+        const commentEl = document.getElementById('result-comment');
+        
+        if (win) {
+            sfx.win();
+            titleEl.innerText = "ПОБЕДА!";
+            titleEl.className = "text-3xl font-black text-green-400 mb-3 uppercase relative z-10 drop-shadow-md";
+            commentEl.innerText = "Блестящие знания! Вы настоящий знаток музыкальной теории. Оценка: 5+";
+        } else {
+            titleEl.innerText = "КОНЕЦ ИГРЫ";
+            titleEl.className = "text-3xl font-black text-red-500 mb-3 uppercase relative z-10 drop-shadow-md";
+            if (score === 0) {
+                commentEl.innerText = "Материал не усвоен. Обязательно повторите конспект!";
+            } else if (score < 32000) {
+                commentEl.innerText = "Базовые знания есть, но сложные темы требуют дополнительного внимания.";
+            } else {
+                commentEl.innerText = "Отличный результат! Теория усвоена на твердую четверку с плюсом.";
+            }
+        }
+    }
+
+    function startGame() {
+        initAudio();
+        document.getElementById('start-screen').classList.add('hidden');
+        loadQuestion();
+    }
+</script>
+</body>
+</html>
+```eof
